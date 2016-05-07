@@ -40,7 +40,6 @@ import java.util.zip.GZIPInputStream;
 import cn.egame.terminal.net.exception.TubeException;
 import cn.egame.terminal.net.utils.ByteArrayBuilder;
 import cn.egame.terminal.net.utils.Logger;
-import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -108,14 +107,10 @@ public class OkHttpConnector {
 
     private static String okHttpExecute(String url, TubeOptions opt,
                                         LinkedList<String> hosts) throws TubeException {
-
-        String hostKey = opt.mHostKey;
-
         // 1. create okhttp client
-        OkHttpClient okHttpClient = new OkHttpClient();
-        final Request request = new Request.Builder()
-                                        .url(processUrls(url, hostKey, hosts))
-                                        .build();
+        OkHttpClient okHttpClient = OkHttpFactory.client(opt);
+        Request request = OkHttpFactory.request(url, opt, hosts, sIndexMap);
+
         // http post
         // TODO
 
@@ -288,37 +283,7 @@ public class OkHttpConnector {
     }
 
 
-    /**
-     * 根据需要修改请求地址的主机和端口号
-     *
-     * @param oldUrl
-     * @param hosts
-     * @return newurl
-     */
-    private static String processUrls(String oldUrl, String hostKey,
-                                   LinkedList<String> hosts) {
 
-
-        // 如果没有主机切换地址或者从来没有切换过，则直接返回
-        if (hosts == null || hosts.isEmpty() || !sIndexMap.containsKey(hostKey)) {
-            return oldUrl;
-        }
-
-        URI uri = URI.create(oldUrl);
-
-        String authority = uri.getAuthority();
-
-        Integer index = sIndexMap.get(hostKey);
-
-        // 检查index是否越界 wei.han
-        if (index == null || hosts.size() <= index) {
-            return oldUrl;
-        }
-
-        URI newServerURI = URI.create(hosts.get(index));
-
-        return oldUrl.replaceFirst(authority, newServerURI.getAuthority());
-    }
     /**
      * 初始化请求参数
      *

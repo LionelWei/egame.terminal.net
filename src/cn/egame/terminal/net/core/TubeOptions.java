@@ -8,8 +8,10 @@
 package cn.egame.terminal.net.core;
 
 import java.io.UnsupportedEncodingException;
+import java.net.Proxy;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -17,7 +19,10 @@ import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 
+import android.content.ContentValues;
 import android.text.TextUtils;
+
+import okhttp3.FormBody;
 
 /**
  * 每个请求所使用的连接选项
@@ -89,6 +94,8 @@ public class TubeOptions {
 
         private int mHttpMethod = HTTP_METHOD_GET;
 
+        private FormBody mFormBody;
+
         public Builder() {
 
         }
@@ -136,6 +143,7 @@ public class TubeOptions {
          * @param headers
          * @return
          */
+        @Deprecated
         public Builder setHeaders(List<Header> headers) {
             this.mListHeaders = headers;
             return this;
@@ -147,8 +155,10 @@ public class TubeOptions {
          * @return
          */
         public Builder setPostEntity(List<? extends NameValuePair> parameters) {
+            ContentValues values = new ContentValues();
             return setPostEntity(parameters, "utf-8");
         }
+
 
         /**
          * 设置post使用的Entity, NameValuePair形式
@@ -180,6 +190,16 @@ public class TubeOptions {
             return this;
         }
 
+        public Builder setPostBody(ContentValues cv) {
+            Set<Map.Entry<String, Object>> entrySet = cv.valueSet();
+            FormBody.Builder builder = new FormBody.Builder();
+            for (Map.Entry<String, Object> entry : entrySet) {
+                builder = builder.add(entry.getKey(), (String)entry.getValue());
+                // addEncoded?
+            }
+            mFormBody = builder.build();
+        }
+
         public Builder enablePostInGzip() {
             this.isPostInGzip = true;
             return this;
@@ -197,7 +217,7 @@ public class TubeOptions {
             if (TextUtils.isEmpty(hostname) || port < 0) {
                 return this;
             }
-
+            // OKHttp用的是Java的proxy 还需要研究下
             this.mHttpProxy = new HttpHost(hostname, port);
             return this;
         }
