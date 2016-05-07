@@ -234,12 +234,9 @@ public class EgameTube {
 
         Handler handler = new Handler(myLooper);
 
-        EntityResult er = null;
 
         try {
-            er = HttpConnector.execute(url, mConfig, opt);
-            result = new JSONObject(er.entity2String());
-            er.close();
+            result = new JSONObject(OkHttpConnector.okHttpExecute(url, mConfig, opt));
         } catch (TubeException e) {
             // TODO Auto-generated catch block
             makeFailed(handler, listener, e);
@@ -248,9 +245,6 @@ public class EgameTube {
             makeFailed(handler, listener,
                     new TubeException(e.getLocalizedMessage(),
                             TubeException.DATA_ERROR_CODE));
-            if (er != null) {
-                er.close();
-            }
             return;
         }
 
