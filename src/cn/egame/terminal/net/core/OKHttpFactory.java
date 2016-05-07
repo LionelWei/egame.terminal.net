@@ -3,6 +3,7 @@ package cn.egame.terminal.net.core;
 
 import org.apache.http.Header;
 
+import java.net.Proxy;
 import java.net.URI;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -10,26 +11,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 
 public class OkHttpFactory {
 
     public static OkHttpClient client(TubeOptions opt) {
-        int soTimeOut = opt.mSoTimeOut;
-        int connTimeOut = opt.mConnTimeOut;
+        int readTimeOut = opt.readTimeOut;
+        int connTimeOut = opt.connTimeOut;
+        Proxy proxy = opt.proxy;
 
         OkHttpClient client;
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
-        // proxy
+        // https 还没搞懂
         // TODO
+        if (proxy != null) {
+            builder = builder.proxy(proxy);
+        }
 
-        if (soTimeOut > 0) {
-            if (soTimeOut > 1000) {
-                soTimeOut /= 1000;
+        if (readTimeOut > 0) {
+            if (readTimeOut > 1000) {
+                readTimeOut /= 1000;
             }
-            builder = builder.readTimeout(soTimeOut, TimeUnit.SECONDS);
+            builder = builder.readTimeout(readTimeOut, TimeUnit.SECONDS);
         }
 
         if (connTimeOut > 0) {
@@ -50,12 +57,18 @@ public class OkHttpFactory {
         Request request;
         Request.Builder builder = new Request.Builder();
 
-        String hostKey = opt.mHostKey;
+        int method = opt.httpMethod;
+        String hostKey = opt.hostKey;
         builder = builder.url(processUrls(url, hostKey, hosts, indexMap));
         builder = builder.addHeader("Accept-Encoding", "gzip");
 
+        if (method == TubeOptions.HTTP_METHOD_POST) {
+            FormBody body = opt.formBody;
+            builder = builder.post(body);
+        }
+
         // 为了兼容HttpClient, 即将弃用
-        List<Header> headers = opt.mListHeaders;
+        List<Header> headers = opt.listHeaders;
         for (Header header: headers) {
             String name = header.getName();
             String value = header.getValue();
@@ -64,7 +77,7 @@ public class OkHttpFactory {
         }
 
         // 设置key-values 形式的 header
-        Map<String, String> keyValues = opt.mMapHeaders;
+        Map<String, String> keyValues = opt.mapHeaders;
         if (keyValues != null) {
             for (String key : keyValues.keySet()) {
                 builder = builder.addHeader(key, keyValues.get(key));

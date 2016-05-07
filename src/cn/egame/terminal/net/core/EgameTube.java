@@ -24,6 +24,8 @@ import cn.egame.terminal.net.listener.JSONTubeListener;
 import cn.egame.terminal.net.listener.StreamTubeListener;
 import cn.egame.terminal.net.listener.StringTubeListener;
 import cn.egame.terminal.net.listener.TubeListener;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 /**
  * 网络管道类 对于配置信息相同仅URL不同的请求可共用一个对象
@@ -133,17 +135,17 @@ public class EgameTube {
         return getString(null, url, opt, null);
     }
 
-    public EntityResult connectStream(final String url, final TubeOptions opt) {
-        try {
-            new URL(url);
-        } catch (MalformedURLException e) {
-            // TODO Auto-generated catch block
-            throw new IllegalArgumentException(
-                    "The url can not be parsed. Please check it again.");
-        }
-
-        return getStream(null, url, opt, null);
-    }
+//    public void connectStream(final String url, final TubeOptions opt) {
+//        try {
+//            new URL(url);
+//        } catch (MalformedURLException e) {
+//            // TODO Auto-generated catch block
+//            throw new IllegalArgumentException(
+//                    "The url can not be parsed. Please check it again.");
+//        }
+//
+//        return getStream(null, url, opt, null);
+//    }
 
     private Runnable getRunnable(final Looper myLooper, final String url,
                                  final TubeOptions opt, final TubeListener<?, ?> listener) {
@@ -186,9 +188,8 @@ public class EgameTube {
         }
 
         try {
-            EntityResult er = HttpConnector.execute(url, mConfig, opt);
-            result = er.entity2String();
-            er.close();
+            Response response = OkHttpConnector.okHttpExecute(url, mConfig, opt);
+            result = OkHttpResponse.getString(response);
         } catch (TubeException e) {
             // TODO Auto-generated catch block
             if (listener != null) {
@@ -236,7 +237,8 @@ public class EgameTube {
 
 
         try {
-            result = new JSONObject(OkHttpConnector.okHttpExecute(url, mConfig, opt));
+            Response response = OkHttpConnector.okHttpExecute(url, mConfig, opt);
+            result = new JSONObject(OkHttpResponse.getString(response));
         } catch (TubeException e) {
             // TODO Auto-generated catch block
             makeFailed(handler, listener, e);
@@ -266,10 +268,10 @@ public class EgameTube {
         }
     }
 
-    private EntityResult getStream(Looper myLooper, String url,
+    private Response getStream(Looper myLooper, String url,
                                    TubeOptions opt, final StreamTubeListener<Object> listener) {
-        EntityResult result = null;
-
+        Response response = null;
+        ResponseBody responseBody = null;
         Handler handler = null;
 
         // 这种条件说明是异步请求，需要异步返回结果
@@ -278,7 +280,7 @@ public class EgameTube {
         }
 
         try {
-            result = HttpConnector.execute(url, mConfig, opt);
+            response = OkHttpConnector.okHttpExecute(url, mConfig, opt);
         } catch (TubeException e) {
             // TODO Auto-generated catch block
             if (listener != null) {
@@ -288,7 +290,7 @@ public class EgameTube {
             return null;
         }
 
-        if (result == null) {
+        if (response == null) {
             if (listener != null) {
                 makeFailed(handler, listener, new TubeException(
                         "The result is null or empty."));
@@ -297,10 +299,11 @@ public class EgameTube {
             return null;
         }
 
+        responseBody = response.body();
+
         if (handler != null) {
             try {
-                final Object object = listener.doInBackground(result
-                        .entity2Stream());
+                final Object object = listener.doInBackground(OkHttpResponse.getStream(response));
 
                 handler.post(new Runnable() {
 
@@ -314,11 +317,11 @@ public class EgameTube {
                 makeFailed(handler, listener, new TubeException(e,
                         TubeException.DATA_ERROR_CODE));
             } finally {
-                result.close();
+                responseBody.close();
             }
         }
 
-        return result;
+        return response;
     }
 
     private void makeFailed(Handler handler, final TubeListener<?, ?> listener,

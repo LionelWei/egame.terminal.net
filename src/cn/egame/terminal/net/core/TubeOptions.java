@@ -8,19 +8,19 @@
 package cn.egame.terminal.net.core;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-
 import android.content.ContentValues;
 import android.text.TextUtils;
+
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 
 import okhttp3.FormBody;
 
@@ -36,31 +36,21 @@ public class TubeOptions {
      * 使用HTTP GET 发起请求
      */
     public static final int HTTP_METHOD_GET = 0;
-
-    /**
-     * 使用HTTP POST 发起请求
-     */
     public static final int HTTP_METHOD_POST = 1;
 
-    protected int mSoTimeOut = -1;
-
-    protected int mConnTimeOut = -1;
-
-    protected int mReconnTimes = -1;
-
-    protected Map<String, String> mMapHeaders = null;
-
-    protected List<Header> mListHeaders = null;
-
-    protected HttpEntity mPostEntity = null;
-    
+    protected int readTimeOut = -1;
+    protected int connTimeOut = -1;
+    protected int reConnTimes = -1;
+    protected Map<String, String> mapHeaders = null;
+    protected List<Header> listHeaders = null;
     protected boolean isPostInGzip = false;
+    protected String hostKey = null;
+    protected int httpMethod = -1;
+    protected HttpEntity postEntity;
+    // OkHttp相关配置
+    protected Proxy proxy = null;
+    protected FormBody formBody = null;
 
-    protected HttpHost mHttpProxy = null;
-
-    protected String mHostKey = null;
-
-    protected int mHttpMethod = -1;
 
     private TubeOptions() {
 
@@ -75,26 +65,17 @@ public class TubeOptions {
     public static class Builder {
 
         private int mSoTimeOut = HttpConnector.SO_TIMEOUT;
-
         private int mConnTimeOut = HttpConnector.CONN_TIMEOUT;
-
         private int mReconnTimes = HttpConnector.RECONN_TIMES;
-
         private Map<String, String> mMapHeaders = null;
-
         private List<Header> mListHeaders = null;
-
-        private HttpEntity mPostEntity = null;
-
         private boolean isPostInGzip = false;
-
-        private HttpHost mHttpProxy = null;
-
+        private HttpEntity mPostEntity;
         private String mHostKey = null;
-
         private int mHttpMethod = HTTP_METHOD_GET;
-
-        private FormBody mFormBody;
+        // OkHttp相关配置
+        private Proxy mProxy = null;
+        private FormBody mFormBody = null;
 
         public Builder() {
 
@@ -198,6 +179,7 @@ public class TubeOptions {
                 // addEncoded?
             }
             mFormBody = builder.build();
+            return this;
         }
 
         public Builder enablePostInGzip() {
@@ -217,8 +199,7 @@ public class TubeOptions {
             if (TextUtils.isEmpty(hostname) || port < 0) {
                 return this;
             }
-            // OKHttp用的是Java的proxy 还需要研究下
-            this.mHttpProxy = new HttpHost(hostname, port);
+            mProxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(hostname, port));
             return this;
         }
 
@@ -273,20 +254,22 @@ public class TubeOptions {
         public TubeOptions create() {
             TubeOptions option = new TubeOptions();
 
-            option.mConnTimeOut = this.mConnTimeOut;
-            option.mSoTimeOut = this.mSoTimeOut;
-            option.mReconnTimes = this.mReconnTimes;
-            option.mMapHeaders = this.mMapHeaders;
-            option.mListHeaders = this.mListHeaders;
-            option.mHttpProxy = this.mHttpProxy;
-            option.mHostKey = this.mHostKey;
-            option.mPostEntity = this.mPostEntity;
+            option.connTimeOut = this.mConnTimeOut;
+            option.readTimeOut = this.mSoTimeOut;
+            option.reConnTimes = this.mReconnTimes;
+            option.mapHeaders = this.mMapHeaders;
+            option.listHeaders = this.mListHeaders;
+            option.hostKey = this.mHostKey;
             option.isPostInGzip = this.isPostInGzip;
+            option.postEntity = this.mPostEntity;
+            option.proxy = this.mProxy;
+            option.formBody = this.mFormBody;
 
-            if (this.mPostEntity != null) {
-                option.mHttpMethod = HTTP_METHOD_POST;
+
+            if (this.mFormBody != null) {
+                option.httpMethod = HTTP_METHOD_POST;
             } else {
-                option.mHttpMethod = this.mHttpMethod;
+                option.httpMethod = this.mHttpMethod;
             }
 
             return option;

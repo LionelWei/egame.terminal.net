@@ -260,7 +260,10 @@ public class FastTube {
      * @return 封装后包含流的对象
      * @see cn.egame.terminal.net.core.HttpConnector.EntityResult
      */
-    public EntityResult connectSyncStream(String url, TubeOptions opt) {
-        return mTube.connectStream(url, opt);
-    }
+
+    // 这个接口有点不合理 将关闭连接交给上层来处理 容易造成内存泄漏
+    // 先去掉..
+//    public  connectSyncStream(String url, TubeOptions opt) {
+//        return mTube.connectStream(url, opt);
+//    }
 }

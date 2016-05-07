@@ -86,13 +86,13 @@ public class HttpConnector {
             opt = cfg.mDefaultOptions;
         }
 
-        if (opt.mMapHeaders == null) {
-            opt.mMapHeaders = cfg.mCommonHeaders;
+        if (opt.mapHeaders == null) {
+            opt.mapHeaders = cfg.mCommonHeaders;
         } else {
-            opt.mMapHeaders.putAll(cfg.mCommonHeaders);
+            opt.mapHeaders.putAll(cfg.mCommonHeaders);
         }
 
-        return execute(url, opt, cfg.mHosts.get(opt.mHostKey));
+        return execute(url, opt, cfg.mHosts.get(opt.hostKey));
     }
 
     /**
@@ -107,15 +107,14 @@ public class HttpConnector {
     private static EntityResult execute(String url, TubeOptions opt,
                                         LinkedList<String> hosts) throws TubeException {
 
-        int method = opt.mHttpMethod;
-        int soTimeOut = opt.mSoTimeOut;
-        int connTimeOut = opt.mConnTimeOut;
-        int reConnTimes = opt.mReconnTimes;
-        List<Header> headers = opt.mListHeaders;
-        Map<String, String> keyValues = opt.mMapHeaders;
-        HttpEntity postEntity = opt.mPostEntity;
-        String hostKey = opt.mHostKey;
-        HttpHost proxy = opt.mHttpProxy;
+        int method = opt.httpMethod;
+        int soTimeOut = opt.readTimeOut;
+        int connTimeOut = opt.connTimeOut;
+        int reConnTimes = opt.reConnTimes;
+        List<Header> headers = opt.listHeaders;
+        Map<String, String> keyValues = opt.mapHeaders;
+        HttpEntity postEntity = opt.postEntity;
+        String hostKey = opt.hostKey;
         HttpRequestBase req = null;
 
         HttpClient client = null;
@@ -124,11 +123,6 @@ public class HttpConnector {
             client = createHttpsClient();
         } else {
             client = new DefaultHttpClient();
-        }
-
-        if (proxy != null) {
-            client.getParams().setParameter(ConnRouteParams.DEFAULT_PROXY,
-                    proxy);
         }
 
         // 根据需要修改请求方式
