@@ -2,9 +2,23 @@ package cn.egame.terminal.net.core;
 
 
 import org.apache.http.Header;
+import org.apache.http.HttpVersion;
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.protocol.HTTP;
 
 import java.net.Proxy;
 import java.net.URI;
+import java.security.KeyStore;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import cn.egame.terminal.net.core.TubeOptions;
+import cn.egame.terminal.net.utils.Logger;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -89,6 +104,43 @@ public class OkHttpFactory {
         return request;
     }
 
+
+    /**
+     * 创建一个自定义的额HttpCLient,包括对Https的证书忽略
+     *
+     * @return
+     */
+    private static HttpClient createHttpsClient() {
+
+        SSLSocketFactoryEx sf = null;
+
+        try {
+            KeyStore trustStore = KeyStore.getInstance(KeyStore
+                    .getDefaultType());
+            trustStore.load(null, null);
+            sf = new SSLSocketFactoryEx(trustStore);
+            sf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+        }
+
+        if (sf == null) {
+            return new DefaultHttpClient();
+        }
+
+        HttpParams params = new BasicHttpParams();
+        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+        HttpProtocolParams.setContentCharset(params,
+                HTTP.DEFAULT_CONTENT_CHARSET);
+        HttpProtocolParams.setUseExpectContinue(params, true);
+        SchemeRegistry schReg = new SchemeRegistry();
+        schReg.register(new Scheme("http", PlainSocketFactory
+                .getSocketFactory(), 80));
+        schReg.register(new Scheme("https", sf, 443));
+        ClientConnectionManager conMgr = new ThreadSafeClientConnManager(
+                params, schReg);
+        return new DefaultHttpClient(conMgr, params);
+    }
 
     /**
      * 根据需要修改请求地址的主机和端口号

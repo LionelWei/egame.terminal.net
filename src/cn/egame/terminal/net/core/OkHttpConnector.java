@@ -1,32 +1,10 @@
 package cn.egame.terminal.net.core;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpVersion;
-import org.apache.http.client.HttpClient;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.PlainSocketFactory;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.protocol.HTTP;
-import org.apache.http.util.EntityUtils;
-
 import java.io.IOException;
-import java.io.InputStream;
-import java.security.KeyStore;
 import java.util.Hashtable;
 import java.util.LinkedList;
-import java.util.zip.GZIPInputStream;
 
 import cn.egame.terminal.net.exception.TubeException;
-import cn.egame.terminal.net.utils.ByteArrayBuilder;
-import cn.egame.terminal.net.utils.Logger;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -145,132 +123,12 @@ public class OkHttpConnector {
     }
 
 
-
-    /**
-     * 兼容Chunked模式
-     *
-     * @param entity
-     * @return
-     * @throws IllegalStateException
-     * @throws IOException
-     */
-    private static String entity2String(HttpEntity entity)
-            throws IllegalStateException, IOException {
-        if (entity == null) {
-            throw new IOException("Entity is null!");
-        }
-        Header contentEncoding = entity.getContentEncoding();
-        boolean acceptGzip = contentEncoding != null
-                && contentEncoding.getValue().equals("gzip");
-
-        if (!entity.isChunked() && !acceptGzip) {
-            return EntityUtils.toString(entity);
-        }
-
-        ByteArrayBuilder dataBuilder = new ByteArrayBuilder();
-
-        InputStream is = entity.getContent();
-
-        InputStream nis = null;
-        byte[] buf = null;
-        int count = 0;
-
-        nis = acceptGzip ? new GZIPInputStream(is) : is;
-
-        /*
-         * accumulate enough data to make it worth pushing it up the stack
-         */
-        buf = new byte[8 * 1024];
-        int len = 0;
-        int lowWater = buf.length / 2;
-
-        while (len != -1) {
-
-            len = nis.read(buf, count, buf.length - count);
-
-            if (len != -1) {
-                count += len;
-            }
-            if (len == -1 || count >= lowWater) {
-                dataBuilder.append(buf, 0, count);
-                // Log.i("wei.han", "The length is " + count + " this time!");
-                count = 0;
-            }
-        }
-
-        if (is != null) {
-            is.close();
-        }
-
-        if (nis != null) {
-            nis.close();
-        }
-
-        synchronized (dataBuilder) {
-            byte[] data = new byte[dataBuilder.getByteSize()];
-            int offset = 0;
-            while (true) {
-                ByteArrayBuilder.Chunk c = dataBuilder.getFirstChunk();
-                if (c == null)
-                    break;
-
-                if (c.mLength != 0) {
-                    System.arraycopy(c.mArray, 0, data, offset, c.mLength);
-                    offset += c.mLength;
-                }
-                c.release();
-            }
-
-            return new String(data);
-        }
-    }
-
-
     private static void waitToReconnect() {
         try {
             Thread.sleep(RECONN_INTERVAL);
         } catch (InterruptedException e) {
 
         }
-    }
-
-
-    /**
-     * 创建一个自定义的额HttpCLient,包括对Https的证书忽略
-     *
-     * @return
-     */
-    private static HttpClient createHttpsClient() {
-
-        SSLSocketFactoryEx sf = null;
-
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore
-                    .getDefaultType());
-            trustStore.load(null, null);
-            sf = new SSLSocketFactoryEx(trustStore);
-            sf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            Logger.d(TAG, e.getLocalizedMessage());
-        }
-
-        if (sf == null) {
-            return new DefaultHttpClient();
-        }
-
-        HttpParams params = new BasicHttpParams();
-        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-        HttpProtocolParams.setContentCharset(params,
-                HTTP.DEFAULT_CONTENT_CHARSET);
-        HttpProtocolParams.setUseExpectContinue(params, true);
-        SchemeRegistry schReg = new SchemeRegistry();
-        schReg.register(new Scheme("http", PlainSocketFactory
-                .getSocketFactory(), 80));
-        schReg.register(new Scheme("https", sf, 443));
-        ClientConnectionManager conMgr = new ThreadSafeClientConnManager(
-                params, schReg);
-        return new DefaultHttpClient(conMgr, params);
     }
 
 }
