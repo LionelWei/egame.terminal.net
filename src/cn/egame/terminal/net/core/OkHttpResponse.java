@@ -4,13 +4,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.GZIPInputStream;
 
-import cn.egame.terminal.net.exception.TubeException;
 import cn.egame.terminal.net.utils.ByteArrayBuilder;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 public class OkHttpResponse {
-    public static String getString(Response response) throws TubeException {
+
+    public static String getString(Response response) {
+        try {
+            return doGetString(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    public static InputStream getStream(Response response) {
+        return response.body().byteStream();
+    }
+
+    private static String doGetString(Response response) throws IOException{
         ResponseBody responseBody = null;
         InputStream is = null;
         GZIPInputStream gzipInputStream = null;
@@ -23,31 +36,17 @@ public class OkHttpResponse {
                 gzipInputStream = new GZIPInputStream(is);
                 return getStringFromStream(gzipInputStream);
             }
-        } catch (IOException e) {
-            throw new TubeException("Response: IO Error");
         } finally {
             if (responseBody != null) {
                 responseBody.close();
             }
             if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    throw new TubeException("Response: IO Error");
-                }
+                is.close();
             }
             if (gzipInputStream != null) {
-                try {
-                    gzipInputStream.close();
-                } catch (IOException e) {
-                    throw new TubeException("Response: IO Error");
-                }
+                gzipInputStream.close();
             }
         }
-    }
-
-    public static InputStream getStream(Response response) {
-        return response.body().byteStream();
     }
 
     private static boolean isGzip(Response response) {
@@ -86,10 +85,6 @@ public class OkHttpResponse {
                 // Log.i("wei.han", "The length is " + count + " this time!");
                 count = 0;
             }
-        }
-
-        if (inputStream != null) {
-            inputStream.close();
         }
 
         byte[] data = new byte[dataBuilder.getByteSize()];

@@ -18,7 +18,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 
-import cn.egame.terminal.net.core.HttpConnector.EntityResult;
 import cn.egame.terminal.net.exception.TubeException;
 import cn.egame.terminal.net.listener.JSONTubeListener;
 import cn.egame.terminal.net.listener.StreamTubeListener;
