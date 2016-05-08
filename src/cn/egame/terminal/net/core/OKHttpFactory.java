@@ -25,12 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import cn.egame.terminal.net.core.TubeOptions;
-import cn.egame.terminal.net.utils.Logger;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 
 public class OkHttpFactory {
 
@@ -85,11 +82,12 @@ public class OkHttpFactory {
 
         // 为了兼容HttpClient, 即将弃用
         List<Header> headers = opt.listHeaders;
-        for (Header header: headers) {
-            String name = header.getName();
-            String value = header.getValue();
-            builder = builder.addHeader(name, value);
-
+        if (headers != null) {
+            for (Header header : headers) {
+                String name = header.getName();
+                String value = header.getValue();
+                builder = builder.addHeader(name, value);
+            }
         }
 
         // 设置key-values 形式的 header

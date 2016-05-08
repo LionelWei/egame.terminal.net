@@ -82,7 +82,6 @@ public class OkHttpResponse {
             }
             if (len == -1 || count >= lowWater) {
                 dataBuilder.append(buf, 0, count);
-                // Log.i("wei.han", "The length is " + count + " this time!");
                 count = 0;
             }
         }
