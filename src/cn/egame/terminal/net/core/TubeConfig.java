@@ -13,7 +13,7 @@ import java.util.Map;
 
 /**
  * 环境变量，公共配置项
- * 
+ *
  * @author Hein
  * @see Builder
  */
@@ -35,11 +35,11 @@ public class TubeConfig {
     public static TubeConfig getDefault() {
         return new TubeConfig.Builder().create();
     }
-    
+
     /**
-     * 
+     *
      * TubeConfig 的建造器
-     * 
+     *
      * @author Hein
      */
     public static class Builder {
@@ -59,9 +59,9 @@ public class TubeConfig {
         }
 
         /**
-         * 
+         *
          * 设置最高并发线程数，0或不设置为不限制
-         * 
+         *
          * @param count
          * @return
          */
@@ -71,9 +71,9 @@ public class TubeConfig {
         }
 
         /**
-         * 
+         *
          * 添加可切换的主机列表
-         * 
+         *
          * @param key
          *            一组主机列表的key
          * @param hosts

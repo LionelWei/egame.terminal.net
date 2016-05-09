@@ -7,13 +7,6 @@
  */
 package cn.egame.terminal.net.core;
 
-import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import android.content.ContentValues;
 import android.text.TextUtils;
 
@@ -22,11 +15,18 @@ import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 
+import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import okhttp3.FormBody;
 
 /**
  * 每个请求所使用的连接选项
- * 
+ *
  * @author Hein
  * @see Builder
  */
@@ -57,16 +57,16 @@ public class TubeOptions {
     }
 
     /**
-     * 
+     *
      * EgameTube建造器
-     * 
+     *
      * @author Hein
      */
     public static class Builder {
 
-        private int mSoTimeOut = HttpConnector.SO_TIMEOUT;
-        private int mConnTimeOut = HttpConnector.CONN_TIMEOUT;
-        private int mReconnTimes = HttpConnector.RECONN_TIMES;
+        private int mReadTimeOut = OkHttpConnection.READ_TIMEOUT;
+        private int mConnTimeOut = OkHttpConnection.CONN_TIMEOUT;
+        private int mReconnTimes = OkHttpConnection.RECONN_TIMES;
         private Map<String, String> mMapHeaders = null;
         private List<Header> mListHeaders = null;
         private boolean isPostInGzip = false;
@@ -82,21 +82,21 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 设置socket超时时间
-         * 
+         *
          * @param time
          * @return
          */
         public Builder setSoTimeOut(int time) {
-            this.mSoTimeOut = time;
+            this.mReadTimeOut = time;
             return this;
         }
 
         /**
-         * 
+         *
          * 设置连接超时时间
-         * 
+         *
          * @param time
          * @return
          */
@@ -106,9 +106,9 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 设置请求头列表
-         * 
+         *
          * @param headers
          * @return
          */
@@ -118,9 +118,9 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 设置请求头列表
-         * 
+         *
          * @param headers
          * @return
          */
@@ -135,6 +135,7 @@ public class TubeOptions {
          * @param parameters NameValuePair列表 参见{@link org.apache.http.message.BasicNameValuePair}
          * @return
          */
+        @Deprecated
         public Builder setPostEntity(List<? extends NameValuePair> parameters) {
             ContentValues values = new ContentValues();
             return setPostEntity(parameters, "utf-8");
@@ -147,8 +148,9 @@ public class TubeOptions {
          * @param charset 指定字符集
          * @return
          */
+        @Deprecated
         public Builder setPostEntity(List<? extends NameValuePair> parameters,
-                String charset) {
+                                     String charset) {
             try {
                 this.mPostEntity = new UrlEncodedFormEntity(parameters, charset);
             } catch (UnsupportedEncodingException e) {
@@ -165,6 +167,7 @@ public class TubeOptions {
          * 输入流{@link org.apache.http.entity.InputStreamEntity}
          * @return
          */
+        @Deprecated
         public Builder setPostEntity(HttpEntity entity) {
             this.mPostEntity = entity;
 
@@ -188,9 +191,9 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 设置代理地址
-         * 
+         *
          * @param hostname 主机ip
          * @param port 端口号
          * @return
@@ -204,7 +207,7 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 设置重连尝试次数
          * @param times
          * @return
@@ -215,7 +218,7 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 设置重连时切换主机所使用的主机列表的Key
          * @param key
          * @return
@@ -230,7 +233,7 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 设置 HTTP请求方式 ,如果不设置,默认为Get请求,如果设置了postEntity,则默认为Post请求
          * @param method
          * @return
@@ -246,16 +249,16 @@ public class TubeOptions {
         }
 
         /**
-         * 
+         *
          * 创建并返回EgameTube对象
-         * 
+         *
          * @return
          */
         public TubeOptions create() {
             TubeOptions option = new TubeOptions();
 
             option.connTimeOut = this.mConnTimeOut;
-            option.readTimeOut = this.mSoTimeOut;
+            option.readTimeOut = this.mReadTimeOut;
             option.reConnTimes = this.mReconnTimes;
             option.mapHeaders = this.mMapHeaders;
             option.listHeaders = this.mListHeaders;
@@ -268,6 +271,8 @@ public class TubeOptions {
 
             if (this.mFormBody != null) {
                 option.httpMethod = HTTP_METHOD_POST;
+                // post太耗费流量，如果一次post失败建议不再重试
+                // option.reConnTimes = 1;
             } else {
                 option.httpMethod = this.mHttpMethod;
             }

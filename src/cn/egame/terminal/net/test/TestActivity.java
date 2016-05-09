@@ -42,7 +42,8 @@ public class TestActivity extends Activity {
 
     public static final int LOGGER = 0;
 
-    private final String testUrl1 = "http://open.play.cn/api/v2/mobile/channel/content.json?channel_id=701&terminal_id=245&current_page=0&rows_of_page=20&order_id=0";
+//    private final String testUrl1 = "http://open.play.cn/api/v2/mobile/channel/content.json?channel_id=701&terminal_id=245&current_page=0&rows_of_page=20&order_id=0";
+    private final String testUrl1 = "https://www.google.com.hk";
 
     private final String fetchHostsUrl = "http://open.play.cn:80/api/v2/egame/host.json";
 

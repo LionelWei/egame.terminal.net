@@ -2,28 +2,23 @@ package cn.egame.terminal.net.core;
 
 
 import org.apache.http.Header;
-import org.apache.http.HttpVersion;
-import org.apache.http.client.HttpClient;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.PlainSocketFactory;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.protocol.HTTP;
 
 import java.net.Proxy;
 import java.net.URI;
-import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
@@ -31,20 +26,19 @@ import okhttp3.Request;
 
 public class OkHttpFactory {
 
-    public static OkHttpClient client(TubeOptions opt) {
-        int readTimeOut = opt.readTimeOut;
-        int connTimeOut = opt.connTimeOut;
-        Proxy proxy = opt.proxy;
-
-        OkHttpClient client;
+    public static OkHttpClient client(String url, TubeOptions opt) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
-        // https 还没搞懂
-        // TODO
+        if (url.startsWith("https")) {
+            builder = addHttpsConfig(builder);
+        }
+
+        Proxy proxy = opt.proxy;
         if (proxy != null) {
             builder = builder.proxy(proxy);
         }
 
+        int readTimeOut = opt.readTimeOut;
         if (readTimeOut > 0) {
             if (readTimeOut > 1000) {
                 readTimeOut /= 1000;
@@ -52,6 +46,7 @@ public class OkHttpFactory {
             builder = builder.readTimeout(readTimeOut, TimeUnit.SECONDS);
         }
 
+        int connTimeOut = opt.connTimeOut;
         if (connTimeOut > 0) {
             if (connTimeOut > 1000) {
                 connTimeOut /= 1000;
@@ -59,22 +54,22 @@ public class OkHttpFactory {
             builder = builder.connectTimeout(connTimeOut, TimeUnit.SECONDS);
         }
 
-        client = builder.build();
-        return client;
+        return builder.build();
     }
 
 
     public static Request request(String url, TubeOptions opt,
                                   LinkedList<String> hosts,
                                   Hashtable<String, Integer> indexMap) {
-        Request request;
         Request.Builder builder = new Request.Builder();
 
-        int method = opt.httpMethod;
         String hostKey = opt.hostKey;
         builder = builder.url(processUrls(url, hostKey, hosts, indexMap));
-        builder = builder.addHeader("Accept-Encoding", "gzip");
 
+        // by JakeWharton: "Accept-Encoding: gzip"会被自动添加到请求中, 并且在回复时自动解压缩
+        // builder = builder.addHeader("Accept-Encoding", "gzip");
+
+        int method = opt.httpMethod;
         if (method == TubeOptions.HTTP_METHOD_POST) {
             FormBody body = opt.formBody;
             builder = builder.post(body);
@@ -98,54 +93,12 @@ public class OkHttpFactory {
             }
         }
 
-        request = builder.build();
-        return request;
-    }
-
-
-    /**
-     * 创建一个自定义的额HttpCLient,包括对Https的证书忽略
-     *
-     * @return
-     */
-    private static HttpClient createHttpsClient() {
-
-        SSLSocketFactoryEx sf = null;
-
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore
-                    .getDefaultType());
-            trustStore.load(null, null);
-            sf = new SSLSocketFactoryEx(trustStore);
-            sf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-        }
-
-        if (sf == null) {
-            return new DefaultHttpClient();
-        }
-
-        HttpParams params = new BasicHttpParams();
-        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-        HttpProtocolParams.setContentCharset(params,
-                HTTP.DEFAULT_CONTENT_CHARSET);
-        HttpProtocolParams.setUseExpectContinue(params, true);
-        SchemeRegistry schReg = new SchemeRegistry();
-        schReg.register(new Scheme("http", PlainSocketFactory
-                .getSocketFactory(), 80));
-        schReg.register(new Scheme("https", sf, 443));
-        ClientConnectionManager conMgr = new ThreadSafeClientConnManager(
-                params, schReg);
-        return new DefaultHttpClient(conMgr, params);
+        return builder.build();
     }
 
     /**
      * 根据需要修改请求地址的主机和端口号
      *
-     * @param oldUrl
-     * @param hosts
-     * @return newurl
      */
     private static String processUrls(String oldUrl, String hostKey,
                                       LinkedList<String> hosts,
@@ -165,5 +118,47 @@ public class OkHttpFactory {
         }
         URI newServerURI = URI.create(hosts.get(index));
         return oldUrl.replaceFirst(authority, newServerURI.getAuthority());
+    }
+
+    private static OkHttpClient.Builder addHttpsConfig(OkHttpClient.Builder builder) {
+        try {
+            builder.sslSocketFactory(getSslSocketFactory());
+            builder.hostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            });
+            return builder;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static SSLSocketFactory getSslSocketFactory() throws Exception{
+        // Create a trust manager that does not validate certificate chains
+        final TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] chain, String authType)
+                            throws CertificateException {
+                    }
+
+                    @Override
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new java.security.cert.X509Certificate[]{};
+                    }
+                }
+        };
+        // Install the all-trusting trust manager
+        SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        // Create an ssl socket factory with our all-trusting manager
+        return sslContext.getSocketFactory();
     }
 }

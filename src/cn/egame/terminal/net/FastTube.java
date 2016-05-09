@@ -7,11 +7,11 @@
  */
 package cn.egame.terminal.net;
 
+import android.text.TextUtils;
+
 import java.util.LinkedList;
 
-import android.text.TextUtils;
 import cn.egame.terminal.net.core.EgameTube;
-import cn.egame.terminal.net.core.HttpConnector.EntityResult;
 import cn.egame.terminal.net.core.TubeConfig;
 import cn.egame.terminal.net.core.TubeOptions;
 import cn.egame.terminal.net.exception.TubeException;
@@ -36,7 +36,7 @@ import cn.egame.terminal.net.listener.TubeListener;
  * 4.在需要增加主机列表时调用{@link #addHosts(String, LinkedList)}方法增加一组主机列表;<br>
  * 5.建议2步骤在Application的初始化中调用;<br>
  * 6.在不再使用时调用{@link #release()}释放资源，由于全局唯一实例，此方法不必须
- * 
+ *
  * @author Hein
  */
 public class FastTube {
@@ -46,9 +46,9 @@ public class FastTube {
     private EgameTube mTube;
 
     /**
-     * 
+     *
      * 获取实例
-     * 
+     *
      * @return
      */
     public static FastTube getInstance() {
@@ -68,9 +68,9 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 初始化网络引擎全局配置项
-     * 
+     *
      * @param cfg
      */
     public void init(TubeConfig cfg) {
@@ -82,7 +82,7 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 释放资源
      */
     public void release() {
@@ -90,9 +90,9 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 添加一组主机列表
-     * 
+     *
      * @param key
      * @param hosts
      * @see TubeConfig.Builder#addHostList(String, LinkedList)
@@ -102,7 +102,7 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 向公共请求头列表中增加新的头信息，如果已经包含则覆盖
      * @param key
      * @param value
@@ -112,9 +112,9 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 使用默认配置获取网络数据，返回一个String数据
-     * 
+     *
      * @param url
      * @param listener
      */
@@ -123,9 +123,9 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 使用默认配置获取网络数据，返回一个JSONObject
-     * 
+     *
      * @param url
      * @param listener
      */
@@ -138,45 +138,45 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 自定义连接配置获取网络数据，返回一个String数据
-     * 
+     *
      * @param url
      * @param opt
      * @param listener
      */
     public void getString(String url, TubeOptions opt,
-            StringTubeListener<?> listener) {
+                          StringTubeListener<?> listener) {
         get(url, opt, listener);
     }
 
     /**
-     * 
+     *
      * 自定义连接配置获取网络数据，返回一个JSONObject
-     * 
+     *
      * @param url
      * @param opt
      * @param listener
      */
     public void getJSON(String url, TubeOptions opt,
-            JSONTubeListener<?> listener) {
+                        JSONTubeListener<?> listener) {
         get(url, opt, listener);
     }
 
     /**
-     * 
+     *
      * 自定义连接配置获取网络数据，返回一个InputStream流
      * @param url
      * @param opt
      * @param listener
      */
     public void getStream(String url, TubeOptions opt,
-            StreamTubeListener<?> listener) {
+                          StreamTubeListener<?> listener) {
         get(url, opt, listener);
     }
 
     /**
-     * 
+     *
      * 直接请求地址，不处理返回结果
      * @param url
      */
@@ -185,7 +185,7 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 使用post方式上传数据，entity请在opt设置
      * @param url
      * @param opt
@@ -196,7 +196,7 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 使用post方式上传数据，entity请在opt设置
      * @param url
      * @param opt
@@ -242,7 +242,7 @@ public class FastTube {
     }
 
     /**
-     * 
+     *
      * 同步返回String数据
      * @param url
      * @param opt
@@ -252,15 +252,14 @@ public class FastTube {
         return mTube.connectString(url, opt);
     }
 
-    /**
-     * 
-     * 同步返回流对象
-     * @param url
-     * @param opt
-     * @return 封装后包含流的对象
-     * @see cn.egame.terminal.net.core.HttpConnector.EntityResult
-     */
-
+//    /**
+//     *
+//     * 同步返回流对象
+//     * @param url
+//     * @param opt
+//     * @return 封装后包含流的对象
+//     * @see
+//     */
     // 这个接口有点不合理 将关闭连接交给上层来处理 容易造成内存泄漏
     // 先去掉..
 //    public  connectSyncStream(String url, TubeOptions opt) {

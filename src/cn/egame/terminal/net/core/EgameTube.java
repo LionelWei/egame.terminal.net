@@ -7,16 +7,16 @@
  */
 package cn.egame.terminal.net.core;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.LinkedList;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.os.Handler;
-import android.os.Looper;
-import android.text.TextUtils;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.LinkedList;
 
 import cn.egame.terminal.net.exception.TubeException;
 import cn.egame.terminal.net.listener.JSONTubeListener;
@@ -187,8 +187,8 @@ public class EgameTube {
         }
 
         try {
-            Response response = OkHttpConnector.okHttpExecute(url, mConfig, opt);
-            result = OkHttpResponse.getString(response);
+            Response response = OkHttpConnection.okHttpExecute(url, mConfig, opt);
+            result = OkHttpConnection.getString(response);
         } catch (TubeException e) {
             // TODO Auto-generated catch block
             if (listener != null) {
@@ -236,8 +236,8 @@ public class EgameTube {
 
 
         try {
-            Response response = OkHttpConnector.okHttpExecute(url, mConfig, opt);
-            result = new JSONObject(OkHttpResponse.getString(response));
+            Response response = OkHttpConnection.okHttpExecute(url, mConfig, opt);
+            result = new JSONObject(OkHttpConnection.getString(response));
         } catch (TubeException e) {
             // TODO Auto-generated catch block
             makeFailed(handler, listener, e);
@@ -268,7 +268,7 @@ public class EgameTube {
     }
 
     private Response getStream(Looper myLooper, String url,
-                                   TubeOptions opt, final StreamTubeListener<Object> listener) {
+                               TubeOptions opt, final StreamTubeListener<Object> listener) {
         Response response = null;
         ResponseBody responseBody = null;
         Handler handler = null;
@@ -279,7 +279,7 @@ public class EgameTube {
         }
 
         try {
-            response = OkHttpConnector.okHttpExecute(url, mConfig, opt);
+            response = OkHttpConnection.okHttpExecute(url, mConfig, opt);
         } catch (TubeException e) {
             // TODO Auto-generated catch block
             if (listener != null) {
@@ -302,7 +302,7 @@ public class EgameTube {
 
         if (handler != null) {
             try {
-                final Object object = listener.doInBackground(OkHttpResponse.getStream(response));
+                final Object object = listener.doInBackground(OkHttpConnection.getStream(response));
 
                 handler.post(new Runnable() {
 
