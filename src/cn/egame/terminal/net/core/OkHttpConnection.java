@@ -2,10 +2,11 @@ package cn.egame.terminal.net.core;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Hashtable;
 import java.util.LinkedList;
 
-import cn.egame.terminal.net.exception.TubeException;
+import okhttp3.Callback;
+import okhttp3.Dns;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -15,130 +16,97 @@ public class OkHttpConnection {
     public static final int READ_TIMEOUT = 15 * 1000;
     public static final int CONN_TIMEOUT = 15 * 1000;
     public static final int RECONN_TIMES = 4;
-
     private static final int RECONN_INTERVAL = 2 * 1000;
-    private static Hashtable<String, Integer> sIndexMap = new Hashtable<>();
 
-    public static Response okHttpExecute(String url, TubeConfig cfg,
-                                       TubeOptions opt) throws TubeException {
-        if (cfg == null) {
-            throw new TubeException("The cfg is null.");
-        }
+    private String mUrl;
+    private TubeConfig mConfig;
+    private TubeOptions mOptions;
+    private Dns mDns;
+    private Interceptor mInterceptor;
+    private String mCacheDir;
 
-        if (opt == null) {
-            opt = cfg.mDefaultOptions;
-        }
+    public void enqueue(Callback responseCallback) {
+        OkHttpClient okHttpClient = OkHttpFactory.client(mUrl, mOptions,
+                                                        mDns, mInterceptor, mCacheDir);
+        Request request = OkHttpFactory.request(mUrl, mOptions);
+        okHttpClient.newCall(request).enqueue(responseCallback);
+    }
 
-        if (opt.mapHeaders == null) {
-            opt.mapHeaders = cfg.mCommonHeaders;
-        } else {
-            opt.mapHeaders.putAll(cfg.mCommonHeaders);
-        }
-
-        return okHttpExecute(url, opt, cfg.mHosts.get(opt.hostKey));
+    public Response execute() throws IOException{
+        OkHttpClient okHttpClient = OkHttpFactory.client(mUrl, mOptions,
+                                                        mDns,mInterceptor, mCacheDir);
+        Request request = OkHttpFactory.request(mUrl, mOptions);
+        return okHttpClient.newCall(request).execute();
     }
 
     public static String getString(Response response) {
         try {
-            // by JakeWharton: "Accept-Encoding: gzip"会被自动添加到请求中, 并且在回复时自动解压缩
-            return response.body().string();
+            if (response != null && response.body() != null) {
+                // by JakeWharton: "Accept-Encoding: gzip"会被自动添加到请求中, 并且在回复时自动解压缩
+                return response.body().string();
+            }
         } catch (IOException e) {
             e.printStackTrace();
-            return "";
         }
+        return "";
     }
 
     public static InputStream getStream(Response response) {
-        return response.body().byteStream();
+        if (response != null && response.body() != null) {
+            return response.body().byteStream();
+        }
+        return null;
     }
 
-    private static Response okHttpExecute(String url, TubeOptions opt,
-                                          LinkedList<String> hosts) throws TubeException {
-        OkHttpClient okHttpClient = OkHttpFactory.client(url, opt);
-        Request request = OkHttpFactory.request(url, opt, hosts, sIndexMap);
-        return getResponse(okHttpClient, request, opt, hosts);
-    }
+    private OkHttpConnection(OkHttpConnection.Builder builder) {
+        mUrl = builder.mUrl;
+        mConfig = builder.mConfig;
+        mOptions = builder.mOptions;
+        mInterceptor = builder.mInterceptor;
+        if (mConfig != null) {
+            mCacheDir = mConfig.mFileDir;
 
-    private static Response getResponse(OkHttpClient httpClient, Request request,
-                                        TubeOptions opt, LinkedList<String> hosts)
-                                        throws TubeException {
-        Response response = null;
-        int reConnTimes = opt.reConnTimes;
-        String hostKey = opt.hostKey;
-
-        for (int i = 0; i < reConnTimes; i++) {
-
-            // 如果不是第一次连接，并且hosts地址不为null，则需要切换服务器地址
-            if (hosts != null && !hosts.isEmpty() && i > 0) {
-                request = requestWithNewHost(request, hostKey, hosts);
+            if (mOptions == null) {
+                mOptions = mConfig.mDefaultOptions;
             }
-
-            try {
-                response = doGetResponse(httpClient, request);
-                int statusCode = response.code();
-                switch (statusCode) {
-                    case 200:
-                        return response;
-                    case 301:
-                    case 302:
-                        String location = response.headers("location").get(0);
-                        if (location != null) {
-                            String redirectUrl = location.replaceAll(" ", "").
-                                    replaceAll(String.valueOf('\t'), "");
-                            request = requestWithNewUrl(request, redirectUrl);
-                            continue;
-                        } else {
-                            throw new TubeException(
-                                    "We got 302 redirect code, but no location.",
-                                    TubeException.SERVER_ERROR_CODE);
-                        }
-
-                    default:
-                        // http状态不正确,主动抛出异常
-                        throw new TubeException("HttpStatus is not OK. -> " + statusCode,
-                                TubeException.SERVER_ERROR_CODE);
-                }
-
-            } catch (IOException e) {
-                // 若连接超时，等待一段时间后再次发起请求
-                waitToReconnect();
-            } catch (Exception e) {
-                throw new TubeException("The exception is unknow: "
-                        + e.getMessage(), TubeException.IO_ERROR_CODE);
+            if (mOptions.mMapHeaders == null) {
+                mOptions.mMapHeaders = mConfig.mCommonHeaders;
+            } else {
+                mOptions.mMapHeaders.putAll(mConfig.mCommonHeaders);
             }
-        }
-        return response;
-    }
-
-    private static  Response doGetResponse(OkHttpClient httpClient, Request request)
-                                            throws IOException {
-        return httpClient.newCall(request).execute();
-    }
-
-    private static Request requestWithNewHost(Request req, String hostKey,
-                                              LinkedList<String> hosts) {
-        if (!sIndexMap.containsKey(hostKey)) {
-            sIndexMap.put(hostKey, 0);
-        }
-        int index = sIndexMap.get(hostKey) + 1;
-        if (index >= hosts.size()) {
-            index = 0;
-        }
-        sIndexMap.put(hostKey, index);
-        String url = hosts.get(index);
-        return requestWithNewUrl(req, url);
-    }
-
-    private static Request requestWithNewUrl(Request req, String newUrl) {
-        return req.newBuilder().url(newUrl).build();
-    }
-
-    private static void waitToReconnect() {
-        try {
-            Thread.sleep(RECONN_INTERVAL);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            LinkedList<String> hostList = mConfig.mHosts.get(mOptions.mHostKey);
+            mDns = new OkHttpDns.Builder().url(mUrl).addresses(hostList).build();
         }
     }
 
+    public static final class Builder {
+        protected String mUrl;
+        protected TubeConfig mConfig;
+        protected TubeOptions mOptions;
+        protected Interceptor mInterceptor;
+
+        public Builder url(String url) {
+            this.mUrl = url;
+            return this;
+        }
+
+        public Builder config(TubeConfig tubeConfig) {
+            this.mConfig = tubeConfig;
+            return this;
+        }
+
+        public Builder option(TubeOptions options) {
+            this.mOptions = options;
+            return this;
+        }
+
+        public Builder interceptor(Interceptor interceptor) {
+            this.mInterceptor = interceptor;
+            return this;
+        }
+
+        public OkHttpConnection build() {
+            return new OkHttpConnection(this);
+        }
+    }
 }

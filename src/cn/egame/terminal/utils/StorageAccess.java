@@ -1,17 +1,12 @@
 package cn.egame.terminal.utils;
 
-import android.annotation.TargetApi;
 import android.os.Build;
-import android.os.Build.VERSION_CODES;
 import android.os.Environment;
 import android.os.StatFs;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
-import cn.egame.terminal.net.utils.Logger;
 
 public class StorageAccess {
 
@@ -48,7 +43,7 @@ public class StorageAccess {
 
         long availableSpare = availableBlock * blocSize;
 
-        Logger.d("wei.han", "available space: " + availableSpare);
+        ELog.d("wei.han", "available space: " + availableSpare);
         return (availableSpare > occupySpare);
     }
 

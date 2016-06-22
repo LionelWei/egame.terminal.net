@@ -3,20 +3,24 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.5.0'
+        classpath 'com.android.tools.build:gradle:2.1.0'
     }
 }
 
-/*
+allprojects {
+    repositories {
+        jcenter()
+        mavenCentral();
+    }
+}
+
 task taskJar(type: Jar, dependsOn: ['build']) { //, dependsOn: [unpackJars] , dependsOn: [taskBuild]
 
     baseName 'egame.terminal.lib.net_' + new Date().format('yyyyMMdd') + '_' + 'release'
 
     from 'build/intermediates/classes/release'
     destinationDir = file('build/libs/release')
-    exclude('**//*
-BuildConfig.class', '**//*
-R.class')
+    exclude('**/BuildConfig.class', '**/R.class')
 //去掉R$开头的文件
     exclude { it.name.startsWith('R$'); }
     exclude { it.name.startsWith('Test'); }
@@ -37,30 +41,18 @@ task release(type: Copy, dependsOn: [clearBuild, taskJar]) {
 
 // clearBuild.execute();
 }
-*/
 
-apply plugin: 'com.android.application'
-
-repositories {
-    flatDir {
-        dirs 'libs'
-    }
-}
-
-fileTree(dir: 'libs', include: '**/*.aar')
-        .each { File file ->
-    dependencies.add("compile", [name: file.name.lastIndexOf('.').with { it != -1 ? file.name[0..<it] : file.name }, ext: 'aar'])
-}
+apply plugin: 'com.android.library'
 
 dependencies {
-    compile fileTree(include: '*.jar', dir: 'libs')
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.squareup.okhttp3:okhttp:3.3.0'
+    compile 'com.orhanobut:logger:1.11'
 }
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
-
-    useLibrary 'org.apache.http.legacy'
+    compileSdkVersion 22
+    buildToolsVersion '23.0.3'
 
     sourceSets {
         main {
@@ -90,4 +82,9 @@ android {
         abortOnError false
     }
 
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_6
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
 }

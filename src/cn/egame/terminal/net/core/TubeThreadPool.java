@@ -3,7 +3,7 @@ package cn.egame.terminal.net.core;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-import cn.egame.terminal.net.utils.Logger;
+import cn.egame.terminal.utils.ELog;
 
 /**
  ******************************************************************
@@ -61,7 +61,7 @@ public final class TubeThreadPool extends ThreadGroup {
 			workThreadList.add(workThread);
 			workThread.start();
 		}
-		Logger.d(TAG, "TubeThreadPool is working!");
+		ELog.d(TAG, "TubeThreadPool is working!");
 	}
 
 	public static TubeThreadPool getInstance(int count) {
@@ -151,7 +151,7 @@ public final class TubeThreadPool extends ThreadGroup {
 		public WorkThread(int id) {
 			super(TubeThreadPool.this, "TubeThread" + id);
 			this.id = id;
-			Logger.d(TAG, "---creat WorkThread id=" + id);
+			ELog.d(TAG, "---create WorkThread id=" + id);
 		}
 
 		public void run() {
@@ -159,7 +159,7 @@ public final class TubeThreadPool extends ThreadGroup {
 				try {
 					task = getTask(id);
 				} catch (InterruptedException ex) {
-					Logger.d(TAG, ex.getLocalizedMessage());
+					ELog.d(TAG, ex.getLocalizedMessage());
 				}
 
 				if (task == null) {
@@ -169,7 +169,7 @@ public final class TubeThreadPool extends ThreadGroup {
 				try {
 					task.run();
 				} catch (Throwable t) {
-					Logger.d(TAG, t.getLocalizedMessage());
+					ELog.d(TAG, t.getLocalizedMessage());
 				}
 
 				task = null;

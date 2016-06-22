@@ -7,11 +7,13 @@
  */
 package cn.egame.terminal.net;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import java.util.LinkedList;
 
 import cn.egame.terminal.net.core.EgameTube;
+import cn.egame.terminal.net.core.EntityResult;
 import cn.egame.terminal.net.core.TubeConfig;
 import cn.egame.terminal.net.core.TubeOptions;
 import cn.egame.terminal.net.exception.TubeException;
@@ -122,6 +124,10 @@ public class FastTube {
         getString(url, null, listener);
     }
 
+    public void getString(Context context, String url, StringTubeListener<?> listener) {
+        getString(context, url, null, listener);
+    }
+
     /**
      *
      * 使用默认配置获取网络数据，返回一个JSONObject
@@ -133,8 +139,24 @@ public class FastTube {
         getJSON(url, null, listener);
     }
 
+    /**
+     *
+     * 使用默认配置获取网络数据，返回一个JSONObject
+     *
+     * @param context
+     * @param url
+     * @param listener
+     */
+    public void getJSON(Context context, String url, JSONTubeListener<?> listener) {
+        getJSON(context, url, null, listener);
+    }
+
     public void getStream(String url, StreamTubeListener<?> listener) {
         getStream(url, null, listener);
+    }
+
+    public void getStream(Context context, String url, StreamTubeListener<?> listener) {
+        getStream(context, url, null, listener);
     }
 
     /**
@@ -152,6 +174,20 @@ public class FastTube {
 
     /**
      *
+     * 自定义连接配置获取网络数据，返回一个String数据
+     *
+     * @param context
+     * @param url
+     * @param opt
+     * @param listener
+     */
+    public void getString(Context context, String url, TubeOptions opt,
+                          StringTubeListener<?> listener) {
+        get(context, url, opt, listener);
+    }
+
+    /**
+     *
      * 自定义连接配置获取网络数据，返回一个JSONObject
      *
      * @param url
@@ -165,6 +201,20 @@ public class FastTube {
 
     /**
      *
+     * 自定义连接配置获取网络数据，返回一个JSONObject
+     *
+     * @param context
+     * @param url
+     * @param opt
+     * @param listener
+     */
+    public void getJSON(Context context, String url, TubeOptions opt,
+                        JSONTubeListener<?> listener) {
+        get(context, url, opt, listener);
+    }
+
+    /**
+     *
      * 自定义连接配置获取网络数据，返回一个InputStream流
      * @param url
      * @param opt
@@ -173,6 +223,19 @@ public class FastTube {
     public void getStream(String url, TubeOptions opt,
                           StreamTubeListener<?> listener) {
         get(url, opt, listener);
+    }
+
+    /**
+     *
+     * 自定义连接配置获取网络数据，返回一个InputStream流
+     * @param context
+     * @param url
+     * @param opt
+     * @param listener
+     */
+    public void getStream(Context context, String url, TubeOptions opt,
+                          StreamTubeListener<?> listener) {
+        get(context, url, opt, listener);
     }
 
     /**
@@ -211,6 +274,10 @@ public class FastTube {
     }
 
     private void get(String url, TubeOptions opt, TubeListener<?, ?> listener) {
+        get(null, url, opt, listener);
+    }
+
+    private void get(Context context, String url, TubeOptions opt, TubeListener<?, ?> listener) {
         if (TextUtils.isEmpty(url)) {
             throw new IllegalArgumentException("The url can not be null.");
         }
@@ -238,7 +305,7 @@ public class FastTube {
             };
         }
 
-        mTube.get(url, opt, listener);
+        mTube.get(context, url, opt, listener);
     }
 
     /**
@@ -252,17 +319,15 @@ public class FastTube {
         return mTube.connectString(url, opt);
     }
 
-//    /**
-//     *
-//     * 同步返回流对象
-//     * @param url
-//     * @param opt
-//     * @return 封装后包含流的对象
-//     * @see
-//     */
-    // 这个接口有点不合理 将关闭连接交给上层来处理 容易造成内存泄漏
-    // 先去掉..
-//    public  connectSyncStream(String url, TubeOptions opt) {
-//        return mTube.connectStream(url, opt);
-//    }
+    /**
+     *
+     * 同步返回流对象
+     * @param url
+     * @param opt
+     * @return 封装后包含流的对象
+     * @see
+     */
+    public EntityResult connectSyncStream(String url, TubeOptions opt) {
+        return mTube.connectStream(url, opt);
+    }
 }

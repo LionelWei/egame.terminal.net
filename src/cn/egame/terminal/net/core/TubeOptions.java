@@ -13,9 +13,7 @@ import android.text.TextUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 
-import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.List;
@@ -23,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import okhttp3.FormBody;
+import okhttp3.RequestBody;
 
 /**
  * 每个请求所使用的连接选项
@@ -38,19 +37,18 @@ public class TubeOptions {
     public static final int HTTP_METHOD_GET = 0;
     public static final int HTTP_METHOD_POST = 1;
 
-    protected int readTimeOut = -1;
-    protected int connTimeOut = -1;
-    protected int reConnTimes = -1;
-    protected Map<String, String> mapHeaders = null;
-    protected List<Header> listHeaders = null;
-    protected boolean isPostInGzip = false;
-    protected String hostKey = null;
-    protected int httpMethod = -1;
-    protected HttpEntity postEntity;
+    protected int mReadTimeOut = -1;
+    protected int mConnTimeOut = -1;
+    protected int mReConnTimes = -1;
+    protected Map<String, String> mMapHeaders = null;
+    protected List<Header> mListHeaders = null;
+    protected boolean mIsPostInGzip = false;
+    protected String mHostKey = null;
+    protected int mHttpMethod = -1;
+    protected HttpEntity mPostEntity;
     // OkHttp相关配置
-    protected Proxy proxy = null;
-    protected FormBody formBody = null;
-
+    protected Proxy mProxy = null;
+    protected RequestBody mRequestBody = null;
 
     private TubeOptions() {
 
@@ -75,11 +73,12 @@ public class TubeOptions {
         private int mHttpMethod = HTTP_METHOD_GET;
         // OkHttp相关配置
         private Proxy mProxy = null;
-        private FormBody mFormBody = null;
+        private RequestBody mRequestBody = null;
 
         public Builder() {
 
         }
+
 
         /**
          *
@@ -137,8 +136,11 @@ public class TubeOptions {
          */
         @Deprecated
         public Builder setPostEntity(List<? extends NameValuePair> parameters) {
-            ContentValues values = new ContentValues();
-            return setPostEntity(parameters, "utf-8");
+            ContentValues cv = new ContentValues();
+            for (NameValuePair pair : parameters) {
+                cv.put(pair.getName(), pair.getValue());
+            }
+            return setRequestBody(cv);
         }
 
 
@@ -151,13 +153,7 @@ public class TubeOptions {
         @Deprecated
         public Builder setPostEntity(List<? extends NameValuePair> parameters,
                                      String charset) {
-            try {
-                this.mPostEntity = new UrlEncodedFormEntity(parameters, charset);
-            } catch (UnsupportedEncodingException e) {
-                // TODO Auto-generated catch block
-                throw new IllegalArgumentException(e.getLocalizedMessage());
-            }
-            return this;
+            return setPostEntity(parameters);
         }
 
         /**
@@ -169,22 +165,35 @@ public class TubeOptions {
          */
         @Deprecated
         public Builder setPostEntity(HttpEntity entity) {
-            this.mPostEntity = entity;
-
+            mRequestBody = new OkHttpEntityBody(entity, null);
             return this;
         }
 
-        public Builder setPostBody(ContentValues cv) {
+        public Builder setRequestBody(ContentValues cv) {
             Set<Map.Entry<String, Object>> entrySet = cv.valueSet();
             FormBody.Builder builder = new FormBody.Builder();
             for (Map.Entry<String, Object> entry : entrySet) {
-                builder = builder.add(entry.getKey(), (String)entry.getValue());
+                String key = entry.getKey();
+                String value = (String)entry.getValue();
+                if (key == null) {
+                    continue;
+                }
+                if (value == null) {
+                    value = "";
+                }
+                builder = builder.add(key, value);
                 // addEncoded?
             }
-            mFormBody = builder.build();
+            mRequestBody = builder.build();
             return this;
         }
 
+        public Builder setRequestBody(MultipartFormData formData) {
+            mRequestBody = OkHttpMultipart.getRequestBody(formData);
+            return this;
+        }
+
+        @Deprecated
         public Builder enablePostInGzip() {
             this.isPostInGzip = true;
             return this;
@@ -257,24 +266,23 @@ public class TubeOptions {
         public TubeOptions create() {
             TubeOptions option = new TubeOptions();
 
-            option.connTimeOut = this.mConnTimeOut;
-            option.readTimeOut = this.mReadTimeOut;
-            option.reConnTimes = this.mReconnTimes;
-            option.mapHeaders = this.mMapHeaders;
-            option.listHeaders = this.mListHeaders;
-            option.hostKey = this.mHostKey;
-            option.isPostInGzip = this.isPostInGzip;
-            option.postEntity = this.mPostEntity;
-            option.proxy = this.mProxy;
-            option.formBody = this.mFormBody;
+            option.mConnTimeOut = this.mConnTimeOut;
+            option.mReadTimeOut = this.mReadTimeOut;
+            option.mReConnTimes = this.mReconnTimes;
+            option.mMapHeaders = this.mMapHeaders;
+            option.mListHeaders = this.mListHeaders;
+            option.mHostKey = this.mHostKey;
+            option.mIsPostInGzip = this.isPostInGzip;
+            option.mPostEntity = this.mPostEntity;
+            option.mProxy = this.mProxy;
+            option.mRequestBody = this.mRequestBody;
 
-
-            if (this.mFormBody != null) {
-                option.httpMethod = HTTP_METHOD_POST;
+            if (this.mRequestBody != null) {
+                option.mHttpMethod = HTTP_METHOD_POST;
                 // post太耗费流量，如果一次post失败建议不再重试
-                // option.reConnTimes = 1;
+                // option.mReConnTimes = 0;
             } else {
-                option.httpMethod = this.mHttpMethod;
+                option.mHttpMethod = HTTP_METHOD_GET;
             }
 
             return option;

@@ -27,6 +27,8 @@
 
 package cn.egame.terminal.net.core.multipart;
 
+import org.apache.http.HttpEntity;
+
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -34,8 +36,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-
-import org.apache.http.HttpEntity;
 
 import cn.egame.terminal.net.core.multipart.content.ByteArrayBody;
 import cn.egame.terminal.net.core.multipart.content.ContentBody;
@@ -48,6 +48,7 @@ import cn.egame.terminal.net.core.multipart.content.StringBody;
  *
  * @since 4.3
  */
+@Deprecated
 public class MultipartEntityBuilder {
 
     /**

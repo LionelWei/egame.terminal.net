@@ -30,14 +30,6 @@
         android:text="分步测试2: 获取数据"
         android:textSize="18dp" />
 
-    <Button
-        android:id="@+id/step3"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp"
-        android:text="Clear"
-        android:textSize="18dp" />
-
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="fill_parent"
@@ -52,6 +44,7 @@
                 android:id="@+id/logout"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
+                android:autoLink="web"
                 android:textColor="#FFFFFFFF" />
         </LinearLayout>
     </ScrollView>

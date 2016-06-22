@@ -7,6 +7,9 @@
  */
 package cn.egame.terminal.net.core;
 
+import android.content.Context;
+import android.text.TextUtils;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -29,11 +32,19 @@ public class TubeConfig {
 
     protected HashMap<String, String> mCommonHeaders = null;
 
+    protected String mFileDir;
+
     private TubeConfig() {
     }
 
     public static TubeConfig getDefault() {
         return new TubeConfig.Builder().create();
+    }
+
+    public void setFileDir(Context context) {
+        if (context != null && TextUtils.isEmpty(mFileDir)) {
+            mFileDir = context.getCacheDir().getAbsolutePath();
+        }
     }
 
     /**
