@@ -1,4 +1,2 @@
 # egame.terminal.net
-Http lib
-dd
-add for test
+Network library based on OkHttp.
